@@ -1,15 +1,11 @@
-# Uno Game
+# Connect 4
 
-## Official Rules
-Setup: Deal 7 cards to each player; start the discard pile.
-Play: Match the top discard in color, number, or symbol.
-Skip: Next player loses turn.
-Reverse: Changes direction of play.
-Draw Two: Next player draws two cards, loses turn.
-Wild: Player decides next color.
-Wild Draw Four: Next player draws four, player decides color; play if no match.
-Uno: Say "Uno" when one card is left.
-Winning: First to discard all cards wins.
+## Projective Objective
+
+In this project, we aim to model the classic game of Connect 4 using Forge.
+
+Connect 4 is a two-player connection game in which players alternately drop colored discs into a vertically suspended grid. The objective is to be the first to form a horizontal, vertical, or diagonal line of four of one's own discs. The original grid is usually 7x6 but we will be modeling a 5x4 grid, a Player 1 and Player 2 with turn-based play, and the win condition of aligning 4 discs. 
+
 
 ## Our Regional Variation
 
