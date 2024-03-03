@@ -26,5 +26,14 @@ The `winning` predicate is central to determining the game's outcome, adapted to
 
 **Calculating Winning Conditions**: In the 3D space, the potential for winning alignments increases. The predicate systematically checks all possible winning lines—horizontal, vertical, diagonal across planes.
 
-## Testing
-Includes tests for board integrity, move validity, and win scenarios, such as `allBoardsWellformed`, `horizontalWinExample`, `zAxisWinExample`, and `invalidMoveOccupiedSpace`.
+## Testing Overview
+
+### Tests for Model Integrity
+- **allBoardsWellformed**: Confirms board pices are within the 3D grid's boundaries
+- **rowX_wellformed**: Validates a board setup with 'X' pieces forming a horizontal line
+- **offBoardZ_not_wellformed**: Identifies incorrect board setups 
+
+### Tests for Domain Properties
+- **horizontalWinExample** and **zAxisWinExample**: These tests validate the model's capability to recognize horizontal wins within layers and vertical wins through the depth of the board, essential for capturing the essence of 3D gameplay.
+- **invalidMoveOccupiedSpace**: Ensures the game logic correctly invalidates moves to occupied spaces, testing a fundamental rule of Connect Four and maintaining game integrity.
+

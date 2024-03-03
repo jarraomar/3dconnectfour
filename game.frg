@@ -127,23 +127,23 @@ pred game_trace {
     }}
 }
 
-run { 
-    game_trace
-    all b: Board | { 
-        some r,c,z: Int | {
-            r >=0 r <= 4 
-            c >=0 c <= 3
-            z >=0 z <=3
-            no b.board[r][c][z]
-        }
-    }
-} for 10 Board for {next is linear}
+// run { 
+//     game_trace
+//     all b: Board | { 
+//         some r,c,z: Int | {
+//             r >=0 r <= 4 
+//             c >=0 c <= 3
+//             z >=0 z <=3
+//             no b.board[r][c][z]
+//         }
+//     }
+// } for 10 Board for {next is linear}
 
 // can run for 20-30 boards, but it will take some time. More than 10 boards is needed, mostly due to the fact of the 
 // amount of combinations which is possible with a 5x4x3 game board
 
 pred allBoardsWellformed { all b: Board | wellformed[b] }
-example rowX_wellformed is {allBoardsWellformed} for {
+example row_wellformed is {allBoardsWellformed} for {
     Board = `Board0
     X = `X0
     O = `O0
@@ -171,10 +171,21 @@ example thereIsWinner is {isWinner} for {
     X = `X0
     O = `O0
     Player = X + O
+        `Board0.board = (0,1,0) -> X + 
+                        (0,2,0) -> X + 
+                        (0,3,0) -> X +
+                        (0,4,0) -> X
+}
+
+example thereIsNoWinner is {not isWinner} for {
+    Board = `Board0
+    X = `X0
+    O = `O0
+    Player = X + O
         `Board0.board = (0,0,0) -> X + 
-                    (0,1,0) -> X + 
-                    (0,2,0) -> X +
-                    (0,3,0) -> X
+                        (0,1,0) -> X + 
+                        (0,2,0) -> X +
+                        (0,0,0) -> X
 }
 
 pred allBoardsWinning { all b: Board | winning[b, X] or winning[b, O] }
@@ -186,7 +197,7 @@ example horizontalWinExample is {allBoardsWinning} for {
     `Board0.board = (0,0,0) -> X + 
                     (1,0,0) -> X + 
                     (2,0,0) -> X +
-                    (0,0,0) -> X
+                    (3,0,0) -> X
 }
 example zAxisWinExample is {allBoardsWinning} for {
     Board = `Board0
