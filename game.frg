@@ -1,149 +1,211 @@
 #lang forge
 
-//12 total cards
-//6 of each color for none action cards
-//2 cards in each hand, 10 on Deck
+abstract sig Player {} 
+one sig X, O extends Player {} 
 
-abstract sig Color {}
-one sig Green, Red extends Color {}
-
-sig Card {
-    color: one Color,
-    number: one Int
+sig Board {
+    board: pfunc Int -> Int -> Int -> Player // 3D board
 }
 
-abstract sig Pile {
-  cards: set Card
+pred wellformed[b: Board] {
+    all row, col, z: Int | {
+        (row < 0 or row > 4 or col < 0 or col > 3 or z < 0 or z > 3) implies {
+             no b.board[row][col][z]
+        }
+    }
 }
 
-one sig Deck, DiscardPile extends Pile {}
-
-abstract sig Player {
-    hand: set Card
+pred initial[b: Board] {
+    all row, col, z: Int | no b.board[row][col][z]
 }
 
-one sig Player1, Player2, Player3 extends Player{}
+pred xturn[b: Board] {
+    #{row, col, z: Int | b.board[row][col][z] = X} 
+    = 
+    #{row, col, z: Int | b.board[row][col][z] = O} 
+}
 
-sig GameState {
-    currentPlayer: one Player,
-    deck: one Deck,
-    discardPile: one DiscardPile,
-    topCard: one Card
+pred oturn[b: Board] {
+    #{row, col, z: Int | b.board[row][col][z] = X} 
+    = 
+    add[#{row, col, z: Int | b.board[row][col][z] = O}, 1]
+}
+
+pred balanced[b: Board] {
+    xturn[b] or oturn[b]
+}
+
+pred winning[b: Board, p: Player] {
+    -- Horizontal wins
+    some r,z: Int | r >= 0 and r <= 4 and (
+        (b.board[r][0][z] = p and b.board[r][1][z] = p and b.board[r][2][z] = p and b.board[r][3][z] = p) or
+        (b.board[r][1][z] = p and b.board[r][2][z] = p and b.board[r][3][z] = p and b.board[r][4][z] = p)
+    )
+    or
+    -- Vertical wins
+    (some c,z: Int | c >= 0 and c <= 3 and (
+        (b.board[0][c][z] = p and b.board[1][c][z] = p and b.board[2][c][z] = p and b.board[3][c][z] = p)
+    ))
+    or
+    -- Diagonal wins (ascending)
+    (some z: Int | {
+        (b.board[3][0][z] = p and b.board[2][1][z] = p and b.board[1][2][z] = p and b.board[0][3][z] = p) or
+        (b.board[4][0][z] = p and b.board[3][1][z] = p and b.board[2][2][z] = p and b.board[1][3][z] = p)
+    })
+    or
+    -- Diagonal wins (descending)
+    (some z: Int | {
+        (b.board[0][0][z] = p and b.board[1][1][z] = p and b.board[2][2][z] = p and b.board[3][3][z] = p) or
+        (b.board[1][0][z] = p and b.board[2][1][z] = p and b.board[3][2][z] = p and b.board[4][3][z] = p)
+    })
+    or
+    -- Z axis Wins
+    (some r, c: Int | r >= 0 and r <= 4 and c >= 0 and c <= 3 and (
+        (b.board[r][c][0] = p and b.board[r][c][1] = p and b.board[r][c][2] = p and b.board[r][c][3] = p)
+    ))
+    or
+    -- XZ Plane Diagonals (across rows and depth for each column)
+    (some c: Int | c >= 0 and c <= 3 and (
+        (b.board[0][c][0] = p and b.board[1][c][1] = p and b.board[2][c][2] = p and b.board[3][c][3] = p) or
+        (b.board[4][c][0] = p and b.board[3][c][1] = p and b.board[2][c][2] = p and b.board[1][c][3] = p)
+    ))
+    or
+    -- YZ Plane Diagonals (across columns and depth for each row)
+    (some r: Int | r >= 0 and r <= 4 and (
+        (b.board[r][0][0] = p and b.board[r][1][1] = p and b.board[r][2][2] = p and b.board[r][3][3] = p) or
+        (b.board[r][3][0] = p and b.board[r][2][1] = p and b.board[r][1][2] = p and b.board[r][0][3] = p)
+    ))
+    or
+    -- 3D Diagonals
+    (
+        (b.board[0][0][0] = p and b.board[1][1][1] = p and b.board[2][2][2] = p and b.board[3][3][3] = p) or
+        (b.board[4][0][0] = p and b.board[3][1][1] = p and b.board[2][2][2] = p and b.board[1][3][3] = p) or
+        (b.board[0][3][0] = p and b.board[1][2][1] = p and b.board[2][1][2] = p and b.board[3][0][3] = p) or
+        (b.board[4][3][0] = p and b.board[3][2][1] = p and b.board[2][1][2] = p and b.board[1][0][3] = p)
+    )
+}
+
+pred move[pre: Board, row, col, z: Int, turn: Player, post: Board] {
+    no pre.board[row][col][z]
+    turn = X implies xturn[pre]
+    turn = O implies oturn[pre]
+    all p: Player | not winning[pre, p]
+
+    row >= 0 and row <= 4 
+    col >= 0 and col <= 3
+    z >= 0 and z <= 3
+
+    post.board[row][col][z] = turn 
+
+    // Ensure that all other cells remain unchanged between the pre-move and post-move board states, 
+    // except for the cell that was targeted by the move.
+    all row2, col2, z2: Int | (row!=row2 or col!=col2 or z!=z2) implies {
+        post.board[row2][col2][z2] = pre.board[row2][col2][z2]
+    }
+}
+
+pred doNothing[pre, post: board] {
+    -- guard
+    some p: Player | winning[pre, p]
+    -- action
+    all r, c, z: Int | {
+        pre.board[r][c][z] = post.board[r][c][z]
+    }
 }
 
 one sig Game {
-    initialState: one GameState,
-    next: pfunc GameState -> GameState
+    first: one Board, 
+    next: pfunc Board -> Board
+}
+pred game_trace {
+    initial[Game.first]
+    all b: Board | { some Game.next[b] implies {
+        (some row, col, z: Int, p: Player | 
+            move[b, row, col, z, p, Game.next[b]])
+        or
+        doNothing[b, Game.next[b]]
+    }}
 }
 
-
-
-pred inHandBounds[i1, i2: Int]{
-    (i1 = 0) and (i2 = 1)
-}
-// pred inCardBounds[i1: Int]{
-//     (i1 >= 0) and (i2 <= 5)
-// }
-pred wellFormedHand[p: Player, d: Deck] {
-    #p.hand = 2
-    
-
-    all c: Card | c in p.hand implies {
-    all col: Color, num: Int | (col in (Green + Red) and num >= 3 and num <= 5) implies {
-        // There should be exactly one card for each color and number combination
-        one c: Card | (c.color = col) and (c.number = num)
+run { 
+    game_trace
+    all b: Board | { 
+        some r,c,z: Int | {
+            r >=0 r <= 4 
+            c >=0 c <= 3
+            z >=0 z <=3
+            no b.board[r][c][z]
+        }
     }
-    }
-    // Ensures the player's hand cards are not in the deck anymore
-    d.cards & p.hand = none
+} for 10 Board for {next is linear}
+
+// can run for 20-30 boards, but it will take some time. More than 10 boards is needed, mostly due to the fact of the 
+// amount of combinations which is possible with a 5x4x3 game board
+
+pred allBoardsWellformed { all b: Board | wellformed[b] }
+example rowX_wellformed is {allBoardsWellformed} for {
+    Board = `Board0
+    X = `X0
+    O = `O0
+    Player = X + O
+    `Board0.board = (0,0,0) -> X + 
+                    (0,1,0) -> X + 
+                    (0,2,0) -> X +
+                    (0,3,0) -> X
 }
 
-pred allHandsAreUnique[p1, p2, p3: Player] {
-    // Ensures that the cards in each player's hand are unique and not shared
-    no (p1.hand & p2.hand)
-    no (p1.hand & p3.hand)
-    no (p2.hand & p3.hand)
+example offBoardZ_not_wellformed is {not allBoardsWellformed} for {
+    Board = `Board0
+    X = `X0
+    O = `O0
+    Player = X + O
+    `Board0.board = (0,0,-1) -> X + 
+                    (0,1,0) -> X + 
+                    (1,2,0) -> X +
+                    (2,2,0) -> X
 }
 
-
-pred wellFormedStartingDeck[d: Deck] { 
-    no DiscardPile.cards
-    #d.cards = 6 
-
-    // Each color has exactly one card for each number from 0 to 5
-    all col: Color, num: Int | (col in (Green + Red) and num >= 0 and num <= 2) implies {
-        // There should be exactly one card for each color and number combination
-        one c: Card | (c.color = col) and (c.number = num) and (c in d.cards)
-    }
+pred isWinner { all b: Board | winning[b,X]}
+example thereIsWinner is {isWinner} for {
+    Board = `Board0
+    X = `X0
+    O = `O0
+    Player = X + O
+        `Board0.board = (0,0,0) -> X + 
+                    (0,1,0) -> X + 
+                    (0,2,0) -> X +
+                    (0,3,0) -> X
 }
 
-pred playCard[s: GameState, p: Player, c: Card, s_next: GameState] {
-  // The card c is in player p's hand
-  some i: Int | p.hand[i] = c and
-  // The card c matches the top card of the discard pile by color or number
-  (c.color = s.topCard.color or c.number = s.topCard.number) and
-  // The next state has c as the new top card of the discard pile
-  s_next.topCard = c and
-  // The card c is removed from player p's hand in the next state
-  no s_next.(p.hand)[i] and
-  // Update the currentPlayer to the next player
-  s_next.currentPlayer = nextPlayer[s.currentPlayer]
-  // ... include additional constraints and updates
+pred allBoardsWinning { all b: Board | winning[b, X] or winning[b, O] }
+example horizontalWinExample is {allBoardsWinning} for {
+    Board = `Board0
+    X = `X0
+    O = `O0
+    Player = X + O
+    `Board0.board = (0,0,0) -> X + 
+                    (1,0,0) -> X + 
+                    (2,0,0) -> X +
+                    (0,0,0) -> X
 }
-pred nextState[s: GameState, s_next: GameState] {
-    -- Determines the next state based on the current state
-    nextPlayer[s.currentPlayer, s_next.currentPlayer]
-    -- Include conditions to modify the deck, hands, and discard pile
-    -- ...
-}
-pred nextPlayer[current: one Player, next: one Player] {
-    -- Assuming a fixed turn order: Player1 -> Player2 -> Player3 -> Player1
-    (current = Player1 and next = Player2) or
-    (current = Player2 and next = Player3) or
-    (current = Player3 and next = Player1)
-}
-// pred initialGame[s: GameState]{
-//     wellFormedStartingDeck
-//     wellFormedHand1
-//     wellFormedHand
-//     some p: Player {
-//         s.currentPlayer = p
-//         some c: Card, i: Int |   
-//            p.hand[i]
-//     // }
-
-// }
-
-    // pre nextMove[s:GameState] {
-        
-    // }
-pred init[g: Game] {
-    wellFormedStartingDeck[g.initialState.deck]
-    wellFormedHand[Player1, g.initialState.deck]
-    wellFormedHand[Player2, g.initialState.deck]
-    wellFormedHand[Player3, g.initialState.deck]
-    allHandsAreUnique[Player1,Player2,Player3]
-    // Ensure that the combined hands of all players do not have overlapping cards
+example zAxisWinExample is {allBoardsWinning} for {
+    Board = `Board0
+    X = `X0
+    O = `O0
+    Player = X + O
+    `Board0.board = (0,0,0) -> X + 
+                    (0,0,1) -> X + 
+                    (0,0,2) -> X +
+                    (0,0,3) -> X
 }
 
-// pred traces {
-//     -- The trace starts with an initial state
-//     starting[Game.initialState]
-//     no sprev: GameState | Game.next[sprev] = Game.initialState
-//     -- Every transition is a valid move
-//     all s: GameState | some Game.next[s] implies {
-//         -- Define valid moves here
-//         -- For example:
-//         -- move[s row col p Game.next[s]]
-//         -- or
-//         -- doNothing[s Game.next[s]]
-//     }
-// }
+pred moveValidity { all pre: Board, post: Board, row: Int, col: Int, z: Int, turn: Player | move[pre, row, col, z, turn, post] }
 
-run {
-    init[Game]
-    
-} 
-for  exactly 1 Deck, exactly 1 Game, exactly 3 Player, 12 Card, exactly 5 Int, exactly 1 GameState
-// Predicates for valid play of card 
-// pred playCard[s: GameState, p: Player, c: Card, s_next: GameState]
+example invalidMoveOccupiedSpace is {not moveValidity} for {
+    Board = `Board1 + `Board2
+    X = `X0
+    O = `O0
+    Player = X + O
+    `Board1.board = (2,1,0) -> X 
+    `Board2.board = (2,1,0) -> O
+}

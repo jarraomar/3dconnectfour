@@ -1,58 +1,30 @@
-# Game Components Overview
+# 3D Connect Four README
 
-## Card Definition
+## Project Objective
+The goal of this project is to model a 3D Connect Four game using Forge, expanding traditional Connect Four into three dimensions. This version adds depth as a third axis to the classic 2D grid, introducing new strategies and a more expansive and complex conditions.
 
-**Attributes:**
-- `color`: String (red, green, yellow, blue, and black for special cards)
-- `number`: Integer (0-9 for numbered cards, -1 indicates action cards)
-- `action`: String (none, skip, +2 for special action cards)
+## Model Design and Visualization
+Our model includes core game play aspects in a 3D environment, focusing on:
+- **Signatures**: `Player`, `Board`—representing players and the 3D game board.
+- **Predicates**: Including `wellformed`, `initial`, `xturn`, `oturn`, `winning`, and `move`—defining game state checks and actions.
 
-## Player
+The visualization unfortunately couldn't be made but we'd be more than welcome to continue with that challenge as a final project, incorporating that into our game. Overall showing the game in 3d dimension turned out to be a lot more complicated then we intially anticipated 
 
-**Attributes:**
-- `hand`: Collection of Card objects (the player's current hand).
-- `name`: String (optional, for identification).
+## Signatures and Predicates
+- **Player**: Two instances `X` and `O`, representing the game players.
+- **Board**: Models the game board as a mapping from 3D coordinates to players.
+- **wellformed** to **game_trace**: Defines game initialization, turn management, winning condition checks, and game progression.
 
-## Player Hand
+### Winning Predicate:
 
-A dynamically managed list/array of Card objects within the Player structure.
+The `winning` predicate is central to determining the game's outcome, adapted to a 3D context from traditional Connect Four. It evaluates the following:
 
-## Deck
+- **Horizontal and Vertical (XY Plane)**: Checks each "slice" of the grid for lines of four in a row, adapting 2D win conditions to each layer of the 3D grid.
+- **Depth (Z-Axis)**: Introduces win conditions along the board's depth, unique to the 3D variant, requiring alignment across different layers.
+- **Diagonal (XY, XZ, YZ Planes)**: Expands diagonal wins to include lines that span across the board's depth and width, or height and depth, utilizing the full 3D space.
+- **3D Diagonals**: The most complex, looking for lines of four that run diagonally through the cube in any direction, fully leveraging the three-dimensional gameplay.
 
-A collection of all Card objects, initially containing all 54 unique cards, shuffled.
+**Calculating Winning Conditions**: In the 3D space, the potential for winning alignments increases. The predicate systematically checks all possible winning lines—horizontal, vertical, diagonal across planes.
 
-## Discard Pile
-
-A collection of Card objects that have been played, determining the playable color, number, or action.
-
-## Game State
-
-Manages the game, including players, deck, discard pile, and turn order.
-
-# Card Definition and Actions
-
-Cards encapsulate color, value, and actions, identifying card types and applying effects during gameplay.
-
-# Game Flow
-
-Involves turn management, card play, action card effects, and win condition checks.
-
-## Initial Setup
-
-- Shuffle the deck.
-- Deal 7 cards to each player.
-- Turn over the top card to start the discard pile.
-- Determine the first player.
-
-## Turn Logic
-
-- Check for playable cards.
-- Play a card or draw from the deck if none are playable.
-- Apply special action effects.
-- Check win conditions after each turn.
-
-## Winning and Scoring
-
-- Emptying one's hand wins the game.
-- If the deck runs out, scores are calculated based on hand values; the highest score wins.
-- A tie is declared if scores are equal.
+## Testing
+Includes tests for board integrity, move validity, and win scenarios, such as `allBoardsWellformed`, `horizontalWinExample`, `zAxisWinExample`, and `invalidMoveOccupiedSpace`.
