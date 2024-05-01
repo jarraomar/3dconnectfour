@@ -14,11 +14,15 @@ pred wellformed[b: Board] {
              no b.board[x][y][z]
         }
     }
+
+    b.prev != none implies wellformed[b.prev]
 }
 
 pred initial[b: Board] {
-    all x, y, z: Int | no b.board[x][y][z]
+    all x, y, z: Int | no b.board[x][y][z]  
+    no b.prev  
 }
+
 
 pred xturn[b: Board] {
     #{x, y, z: Int | b.board[x][y][z] = X}
@@ -96,31 +100,34 @@ pred winning[b: Board, p: Player] {
 }
 
 pred move[pre: Board, x, y, z: Int, turn: Player, post: Board] {
-    no pre.board[x][y][z]
-    turn = X implies xturn[pre]
-    turn = O implies oturn[pre]
-    turn = K implies kturn[pre]
-    all p: Player | not winning[pre, p]
+    no pre.board[x, y, z] 
+    // Validate turns 
+    turn = X implies xturn[pre] 
+    turn = O implies oturn[pre] 
+    turn = K implies kturn[pre] 
+    all p: Player | not winning[pre, p]  // Ensure no player has won before this move
 
     x >= 0 and x <= 2 
     y >= 0 and y <= 2
     z >= 0 and z <= 2
 
-    post.board[x][y][z] = turn 
+    post.board[x, y, z] = turn  // Apply the move to the post state
 
-    // Ensure that all other cells remain unchanged between the pre-move and post-move board states, 
-    // except for the cell that was targeted by the move.
     all x2, y2, z2: Int | (x != x2 or y != y2 or z != z2) implies {
-        post.board[x2][y2][z2] = pre.board[x2][y2][z2]
+        post.board[x2, y2, z2] = pre.board[x2, y2, z2]
     }
+
+    post.prev = pre  
 }
 
 pred doNothing[pre, post: Board] {
     some p: Player | winning[pre, p]
     
     all x, y, z: Int | {
-        pre.board[x][y][z] = post.board[x][y][z]
+        pre.board[x, y, z] = post.board[x, y, z]
     }
+
+    post.prev = pre
 }
 
 one sig Game {
@@ -128,15 +135,20 @@ one sig Game {
     next: pfunc Board -> Board
 }
 
-pred game_trace {
-    initial[Game.first]
-    all b: Board | { some Game.next[b] implies {
-        (some x, y, z: Int, p: Player | 
-            move[b, x, y, z, p, Game.next[b]])
-        or
-        doNothing[b, Game.next[b]]
-    }}
-}
+// pred game_trace {
+//     initial[Game.first]  // Ensure the first board is correctly initialized
+//     all b: Board | { 
+//         some Game.next[b] implies {
+//             (some x, y, z: Int, p: Player | 
+//                 move[b, x, y, z, p, Game.next[b]])  // Validate moves
+//             or
+//             doNothing[b, Game.next[b]]  // Handle no action if the game has concluded
+//         }
+//         // Additionally, ensure proper historical linking and consistency
+//         b.next = Game.next[b] implies (b.next.prev = b)
+//     }
+// }
+
 
 // run { 
 //     game_trace
@@ -150,20 +162,63 @@ pred game_trace {
 //     }
 // } for 10 Board for {next is linear}
 
-// can run for 20-30 boards, but it will take some time. More than 10 boards is needed, mostly due to the fact of the 
-// amount of combinations which is possible with a 5x4x3 game board
-
-pred allBoardsWellformed { all b: Board | wellformed[b] }
-example row_wellformed is {allBoardsWellformed} for {
-    Board = `Board0
+pred moveValidity {
+    all pre: Board, post: Board, x: Int, y: Int, z: Int, turn: Player | {
+        move[pre, x, y, z, turn, post] and
+        post.prev = pre 
+    }
+}
+example validMoveOccupiedSpace is { moveValidity} for {
+    Board = `Board_pre + `Board_post
     X = `X0
     O = `O0
     K = `K0
     Player = X + O + K
-    `Board0.board = (0,0,0) -> X + 
-                    (0,1,0) -> O + 
-                    (0,2,0) -> K
+
+    `Board_pre.board = (2,1,1) -> X
+    `Board_post.board = (2,1,0) -> O
+    `Board_post.prev = `Board_pre
 }
+
+// example validMove is {moveValidity} for {
+//     Board = `Board_pre + `Board_post
+//     X = `X0
+//     O = `O0
+//     K = `K0
+//     Player = X + O + K
+
+//     // Initial board state setup where the space at (2,1,0) is unoccupied, and it's X's turn
+//     `Board_pre.board = (1,1,0) -> O  // Assume O made a move already
+//     // X makes a valid move to an unoccupied position
+//     `Board_post.board = (1,1,0) -> O +  // Previous move remains
+//                         (2,1,0) -> X   // X moves to an unoccupied position
+// }
+
+// example validMove is {moveValidity} for {
+//     Board = `Board_pre + `Board_post
+//     X = `X0
+//     O = `O0
+//     K = `K0
+//     Player = X + O + K
+
+//     // Assume a state where it's now X's turn to move.
+//     `Board_pre.board = (1,1,0) -> O + (0,0,0) -> K  // O and K have moved, X has not yet moved
+//     // X makes a valid move to an unoccupied position (2,1,0)
+//     `Board_post.board = (1,1,0) -> O + (0,0,0) -> K + (2,1,0) -> X
+//     `Board_post.prev = `Board_pre  // Linking post to its correct previous state
+// }
+
+// pred allBoardsWellformed { all b: Board | wellformed[b] }
+// example row_wellformed is {allBoardsWellformed} for {
+//     Board = `Board0
+//     X = `X0
+//     O = `O0
+//     K = `K0
+//     Player = X + O + K
+//     `Board0.board = (0,0,0) -> X + 
+//                     (0,1,0) -> O + 
+//                     (0,2,0) -> K
+// }
 
 // example offBoardZ_not_wellformed is {not allBoardsWellformed} for {
 //     Board = `Board0
@@ -224,14 +279,6 @@ example row_wellformed is {allBoardsWellformed} for {
 //                     (0,0,3) -> X
 // }
 
-// pred moveValidity { all pre: Board, post: Board, x: Int, y: Int, z: Int, turn: Player | move[pre, x, y, z, turn, post] }
-// example invalidMoveOccupiedSpace is {not moveValidity} for {
-//     Board = `Board1 + `Board2 + `Board3
-//     X = `X0
-//     O = `O0
-//     K = `K0
-//     Player = X + O + K
-//     `Board1.board = (2,1,0) -> X
-// }
+
 
 // Update the tests to include a prev state , to check its validity when making moves
