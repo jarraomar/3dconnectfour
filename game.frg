@@ -169,7 +169,7 @@ pred doNothing[pre, post: Board] {
     Testing the Move Property
 */
 
-pred moveValidity { all pre: Board, post: Board, x: Int, y: Int, z: Int, turn: Player | move[pre, x, y, z, turn, post] }
+pred moveValidity { some pre: Board, post: Board, x: Int, y: Int, z: Int, turn: Player | move[pre, x, y, z, turn, post] }
 
 example invalidMoveOccupiedSpace is {not moveValidity} for {
     Board = `Board1 + `Board2 + `Board3
@@ -181,15 +181,15 @@ example invalidMoveOccupiedSpace is {not moveValidity} for {
     `Board2.board = (2,1,0) -> O
 }
 
-// example validMoveOccupiedSpace is { moveValidity} for {
-//     Board = `Board1 + `Board2 + `Board3
-//     X = `X0
-//     O = `O0
-//     K = `K0
-//     Player = X + O + K
-//     `Board1.board = (2,1,0) -> X
-//     `Board2.board = (2,1,1) -> O
-// }
+example validMoveOccupiedSpace is { moveValidity} for {
+    Board = `Board1 + `Board2 + `Board3
+    X = `X0
+    O = `O0
+    K = `K0
+    Player = X + O + K
+    `Board1.board = (2,1,0) -> X
+    `Board2.board = (2,1,1) -> O + (2,1,0) -> X
+}
 
 /*
 Testing Board Wellformedness
