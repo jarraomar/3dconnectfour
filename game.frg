@@ -1,11 +1,14 @@
 #lang forge
-
 abstract sig Player {} 
 one sig X, O, K extends Player {} 
 
 sig Board {
-    board: pfunc Int -> Int -> Int -> Player,  // 3D board
-    prev: lone Board // just add this 
+    //Board state
+    board: pfunc Int -> Int -> Int -> Player,
+    //Player turn
+    turn: one Player,
+    //Previous board state
+    prev: one Board
 }
 
 one sig Game {
@@ -26,74 +29,34 @@ pred wellformed[b: Board] {
 pred initial[b: Board] {
     all x, y, z: Int | no b.board[x][y][z]  
     no b.prev  
-}
-
-
-pred xturn[b: Board] {
-    #{x, y, z: Int | b.board[x][y][z] = X}
-    =
-    #{x, y, z: Int | b.board[x][y][z] = K}
-    and
-    #{x, y, z: Int | b.board[x][y][z] = X}
-    =
-    add[#{x, y, z: Int | b.board[x][y][z] = O}, 1]
-}
-
-
-pred oturn[b: Board] {
-    #{x, y, z: Int | b.board[x][y][z] = O}
-    =
-    #{x, y, z: Int | b.board[x][y][z] = X}
-    and
-    #{x, y, z: Int | b.board[x][y][z] = O}
-    =
-    add[#{x, y, z: Int | b.board[x][y][z] = K}, 1]
-}
-
-pred kturn[b: Board] {
-    #{x, y, z: Int | b.board[x][y][z] = K}
-    =
-    #{x, y, z: Int | b.board[x][y][z] = O}
-    and
-    #{x, y, z: Int | b.board[x][y][z] = K}
-    =
-    add[#{x, y, z: Int | b.board[x][y][z] = X}, 1]
-}
-
-pred balanced[b: Board] {
-    xturn[b] or oturn[b] or kturn[b]
+    b.turn = X
 }
 
 
 pred winning[b: Board, p: Player] {
     -- Horizontal wins
     (some x, z: Int | {
-        (b.board[x][0][z] = p and b.board[x][1][z] = p and b.board[x][2][z] = p) or
-        (b.board[x][2][z] = p and b.board[x][1][z] = p and b.board[x][0][z] = p)
+        (b.board[x][0][z] = p and b.board[x][1][z] = p and b.board[x][2][z] = p)
     })
     or
     -- Vertical wins
     (some y, z: Int | {
-        (b.board[0][y][z] = p and b.board[1][y][z] = p and b.board[2][y][z] = p) or
-        (b.board[2][y][z] = p and b.board[1][y][z] = p and b.board[0][y][z] = p)
+        (b.board[0][y][z] = p and b.board[1][y][z] = p and b.board[2][y][z] = p)
     })
     or
     -- Z axis Wins
     (some x, y: Int | {
-        (b.board[x][y][0] = p and b.board[x][y][1] = p and b.board[x][y][2] = p) or
-        (b.board[x][y][2] = p and b.board[x][y][1] = p and b.board[x][y][0] = p)
+        (b.board[x][y][0] = p and b.board[x][y][1] = p and b.board[x][y][2] = p)
     })
     or
     -- Diagonal wins across XZ Plane (rows and depth for each column)
     (some y: Int | {
-        (b.board[0][y][0] = p and b.board[1][y][1] = p and b.board[2][y][2] = p) or
-        (b.board[2][y][0] = p and b.board[1][y][1] = p and b.board[0][y][2] = p)
+        (b.board[0][y][0] = p and b.board[1][y][1] = p and b.board[2][y][2] = p)
     })
     or
     -- Diagonal wins across YZ Plane (columns and depth for each row)
     (some x: Int | {
-        (b.board[x][0][0] = p and b.board[x][1][1] = p and b.board[x][2][2] = p) or
-        (b.board[x][2][0] = p and b.board[x][1][1] = p and b.board[x][0][2] = p)
+        (b.board[x][0][0] = p and b.board[x][1][1] = p and b.board[x][2][2] = p)
     })
     or
     -- 3D Diagonals
@@ -105,18 +68,19 @@ pred winning[b: Board, p: Player] {
     )
 }
 
-pred move[pre: Board, x, y, z: Int, turn: Player, post: Board] {
+pred move[pre: Board, x, y, z: Int, post: Board] {
+    //Guard
     no pre.board[x][y][z]
-    turn = X implies xturn[pre]
-    turn = O implies oturn[pre]
-    turn = K implies kturn[pre]
+    pre.turn = X implies post.turn = O
+    pre.turn = O implies post.turn = K
+    pre.turn = K implies post.turn = X
     all p: Player | not winning[pre, p]
 
     x >= 0 and x <= 2 
     y >= 0 and y <= 2
     z >= 0 and z <= 2
 
-    post.board[x][y][z] = turn 
+    post.board[x][y][z] = pre.turn 
 
     // Ensure that all other cells remain unchanged between the pre-move and post-move board states, 
     // except for the cell that was targeted by the move.
@@ -142,7 +106,7 @@ pred doNothing[pre, post: Board] {
 //     all b: Board | { 
 //         some Game.next[b] implies {
 //             (some x, y, z: Int, p: Player | 
-//                 move[b, x, y, z, p, Game.next[b]])  // Validate moves
+//                 move[b, x, y, z, Game.next[b]])  // Validate moves
 //             or
 //             doNothing[b, Game.next[b]]  // Handle no action if the game has concluded
 //         }
@@ -169,27 +133,31 @@ pred doNothing[pre, post: Board] {
     Testing the Move Property
 */
 
-pred moveValidity { some pre: Board, post: Board, x: Int, y: Int, z: Int, turn: Player | move[pre, x, y, z, turn, post] }
-
-example invalidMoveOccupiedSpace is {not moveValidity} for {
-    Board = `Board1 + `Board2 + `Board3
+pred moveValidity { some pre: Board, post: Board, x: Int, y: Int, z: Int, turn: Player | move[pre, x, y, z, post] }
+test suite for moveValidity {
+    example invalidMoveOccupiedSpace is {not moveValidity} for {
+    Board = `Board1 + `Board2
     X = `X0
     O = `O0
     K = `K0
     Player = X + O + K
     `Board1.board = (2,1,0) -> X
     `Board2.board = (2,1,0) -> O
+    }
+
+    example validMoveOccupiedSpace is { moveValidity} for {
+        Board = `Board1 + `Board2
+        X = `X0
+        O = `O0
+        K = `K0
+        Player = X + O + K
+        `Board1.board = (2,1,0) -> X
+        `Board2.board = (2,1,1) -> O + (2,1,0) -> X
+    }
 }
 
-example validMoveOccupiedSpace is { moveValidity} for {
-    Board = `Board1 + `Board2 + `Board3
-    X = `X0
-    O = `O0
-    K = `K0
-    Player = X + O + K
-    `Board1.board = (2,1,0) -> X
-    `Board2.board = (2,1,1) -> O + (2,1,0) -> X
-}
+
+
 
 /*
 Testing Board Wellformedness
