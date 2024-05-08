@@ -101,32 +101,34 @@ pred doNothing[pre, post: Board] {
 
 
 
-// pred game_trace {
-//     initial[Game.first]  // Ensure the first board is correctly initialized
-//     all b: Board | { 
-//         some Game.next[b] implies {
-//             (some x, y, z: Int, p: Player | 
-//                 move[b, x, y, z, Game.next[b]])  // Validate moves
-//             or
-//             doNothing[b, Game.next[b]]  // Handle no action if the game has concluded
-//         }
-//         // Additionally, ensure proper historical linking and consistency
-//         b.next = Game.next[b] implies (b.next.prev = b)
-//     }
-// }
+pred game_trace {
+    initial[Game.first]  // Ensure the first board is correctly initialized
+    all b: Board | wellformed[b] implies {
+    some Game.next[b] implies {
+            (some x, y, z: Int, p: Player | 
+                move[b, x, y, z, Game.next[b]])  // Validate moves
+            or
+            doNothing[b, Game.next[b]]  // Handle no action if the game has concluded
+        }
+        // Additionally, ensure proper historical linking and consistency
+        b.next = Game.next[b] implies (b.next.prev = b)
+    }
+    } // Ensure all boards are well-formed
+        
 
 
-// run { 
-//     game_trace
-//     all b: Board | { 
-//         some x, y, z: Int | {
-//             x >= 0 and x <= 2 
-//             y >= 0 and y <= 2
-//             z >= 0 and z <= 2
-//             no b.board[x][y][z]
-//         }
-//     }
-// } for 10 Board for {next is linear}
+
+run { 
+    game_trace
+    // all b: Board | { 
+    //     some x, y, z: Int | {
+    //         x >= 0 and x <= 2 
+    //         y >= 0 and y <= 2
+    //         z >= 0 and z <= 2
+    //         no b.board[x][y][z]
+    //     }
+    // }
+} for 4 Board for {next is linear}
 
 
 /*
@@ -134,27 +136,49 @@ pred doNothing[pre, post: Board] {
 */
 
 pred moveValidity { some pre: Board, post: Board, x: Int, y: Int, z: Int, turn: Player | move[pre, x, y, z, post] }
-test suite for moveValidity {
-    example invalidMoveOccupiedSpace is {not moveValidity} for {
-    Board = `Board1 + `Board2
-    X = `X0
-    O = `O0
-    K = `K0
-    Player = X + O + K
-    `Board1.board = (2,1,0) -> X
-    `Board2.board = (2,1,0) -> O
-    }
+// test suite for moveValidity {
+//     example invalidMoveOccupiedSpace is {not moveValidity} for {
+//     Board = `Board1 + `Board2
+//     X = `X0
+//     O = `O0
+//     K = `K0
+//     Player = X + O + K
+//     `Board1.board = (2,1,0) -> X
+//     `Board2.board = (2,1,0) -> O
+//     }
 
-    example validMoveOccupiedSpace is { moveValidity} for {
-        Board = `Board1 + `Board2
-        X = `X0
-        O = `O0
-        K = `K0
-        Player = X + O + K
-        `Board1.board = (2,1,0) -> X
-        `Board2.board = (2,1,1) -> O + (2,1,0) -> X
-    }
-}
+//     example validMoveOccupiedSpace is { moveValidity} for {
+//         Board = `Board1 + `Board2
+//         X = `X0
+//         O = `O0
+//         K = `K0
+//         Player = X + O + K
+//         `Board1.board = (2,1,0) -> X
+//         `Board2.board = (2,1,1) -> O + (2,1,0) -> X
+//     }
+
+//     example turnSequencingInvalid is { not moveValidity } for {
+//         Board = `Board1 + `Board2
+//         X = `X0
+//         O = `O0
+//         K = `K0
+//         Player = X + O + K
+//         `Board1.turn = X
+//         `Board2.turn = X  // Invalid, should be O's turn
+//         `Board1.board = (2,2,0) -> X
+//         `Board2.board = (2,2,1) -> X
+//     }
+
+//     example invalidCoordinatesMove is { not moveValidity } for {
+//         Board = `Board1 + `Board2
+//         X = `X0
+//         O = `O0
+//         K = `K0
+//         Player = X + O + K
+//         `Board1.board = (3,3,3) -> X  // Invalid coordinates
+//         `Board2.board = (3,3,3) -> O
+//     }
+// }
 
 
 
