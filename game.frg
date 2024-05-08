@@ -22,8 +22,6 @@ pred wellformed[b: Board] {
              no b.board[x][y][z]
         }
     }
-
-    b.prev != none implies wellformed[b.prev]
 }
 
 pred initial[b: Board] {
@@ -31,6 +29,7 @@ pred initial[b: Board] {
     no b.prev  
     b.turn = X
 }
+
 
 
 pred winning[b: Board, p: Player] {
@@ -90,12 +89,11 @@ pred move[pre: Board, x, y, z: Int, post: Board] {
 }
 
 pred doNothing[pre, post: Board] {
-    some p: Player | winning[pre, p]
+  //  some p: Player | winning[pre, p]
     
     all x, y, z: Int | {
         pre.board[x, y, z] = post.board[x, y, z]
     }
-
     post.prev = pre
 }
 
@@ -103,17 +101,25 @@ pred doNothing[pre, post: Board] {
 
 pred game_trace {
     initial[Game.first]  // Ensure the first board is correctly initialized
-    all b: Board | wellformed[b] implies {
-    some Game.next[b] implies {
-            (some x, y, z: Int, p: Player | 
-                move[b, x, y, z, Game.next[b]])  // Validate moves
+    all b: Board | b != Game.first implies {
+    // some Game.next[b] implies {
+    //         (some x, y, z: Int, p: Player | 
+    //             move[b, x, y, z, Game.next[b]])  // Validate moves
+    //         or
+    //         doNothing[b, Game.next[b]]  // Handle no action if the game has concluded
+    //     }
+    //     // Additionally, ensure proper historical linking and consistency
+    //     b.next = Game.next[b] implies (b.next.prev = b)
+        wellformed[b]
+        some b2: Board | wellformed[b2] and Game.next[b] = b2 implies {
+            some x, y, z: Int, p: Player | 
+                move[b, x, y, z, b2]  // Validate moves
             or
-            doNothing[b, Game.next[b]]  // Handle no action if the game has concluded
+                doNothing[b, b2]
         }
-        // Additionally, ensure proper historical linking and consistency
-        b.next = Game.next[b] implies (b.next.prev = b)
+        
     }
-    } // Ensure all boards are well-formed
+} // Ensure all boards are well-formed
         
 
 
@@ -128,7 +134,7 @@ run {
     //         no b.board[x][y][z]
     //     }
     // }
-} for 4 Board for {next is linear}
+} for 3e Board, 3 Int for {next is linear}
 
 
 /*
