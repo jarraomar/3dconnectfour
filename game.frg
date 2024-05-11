@@ -8,7 +8,7 @@ sig Board {
     //Player turn
     turn: one Player,
     //Previous board state
-    prev: one Board
+    prev: lone Board
 }
 
 one sig Game {
@@ -26,7 +26,7 @@ pred wellformed[b: Board] {
 
 pred initial[b: Board] {
     all x, y, z: Int | no b.board[x][y][z]  
-    no b.prev  
+    b.prev = none
     b.turn = X
 }
 
@@ -101,40 +101,21 @@ pred doNothing[pre, post: Board] {
 
 pred game_trace {
     initial[Game.first]  // Ensure the first board is correctly initialized
-    all b: Board | b != Game.first implies {
-    // some Game.next[b] implies {
-    //         (some x, y, z: Int, p: Player | 
-    //             move[b, x, y, z, Game.next[b]])  // Validate moves
+    // all b: Board | b != Game.first implies {
+    //     wellformed[b]
+    //     some b2: Board | wellformed[b2] and Game.next[b] = b2 implies {
+    //         some x, y, z: Int, p: Player | 
+    //             move[b, x, y, z, b2]  // Validate moves
     //         or
-    //         doNothing[b, Game.next[b]]  // Handle no action if the game has concluded
-    //     }
-    //     // Additionally, ensure proper historical linking and consistency
-    //     b.next = Game.next[b] implies (b.next.prev = b)
-        wellformed[b]
-        some b2: Board | wellformed[b2] and Game.next[b] = b2 implies {
-            some x, y, z: Int, p: Player | 
-                move[b, x, y, z, b2]  // Validate moves
-            or
-                doNothing[b, b2]
-        }
-        
-    }
+    //             doNothing[b, b2]
+    //     }  
+    // }
 } // Ensure all boards are well-formed
         
 
 
 
-run { 
-    game_trace
-    // all b: Board | { 
-    //     some x, y, z: Int | {
-    //         x >= 0 and x <= 2 
-    //         y >= 0 and y <= 2
-    //         z >= 0 and z <= 2
-    //         no b.board[x][y][z]
-    //     }
-    // }
-} for 3e Board, 3 Int for {next is linear}
+run { game_trace } for 3 Board for {next is linear}
 
 
 /*
