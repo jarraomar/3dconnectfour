@@ -100,26 +100,25 @@ pred doNothing[pre, post: Board] {
 
 
 pred game_trace {
-    initial[Game.first]  // Ensure the first board is correctly initialized
-    all b: Board |  wellformed[b] and b != Game.first implies {
-    // some Game.next[b] implies {
-    //         (some x, y, z: Int, p: Player | 
-    //             move[b, x, y, z, Game.next[b]])  // Validate moves
-    //         or
-    //         doNothing[b, Game.next[b]]  // Handle no action if the game has concluded
-    //     }
-    //     // Additionally, ensure proper historical linking and consistency
-    //     b.next = Game.next[b] implies (b.next.prev = b)
-        some b2: Board | wellformed[b2] and Game.next[b] = b2 implies {
+    all b: Board | {
+        wellformed[b]
+    }
+    initial[Game.first] //Initialize board
+    
+    all b: Board | b != Game.first implies {
+        some b2: Board |some Game.next[b] and Game.next[b] = b2 implies {
             some x, y, z: Int, p: Player | 
                 move[b, x, y, z, b2]  // Validate moves
             or
                 doNothing[b, b2]
-        }
-        
+        }  
     }
-
 } // Ensure all boards are well-formed
+        
+
+
+
+run { game_trace } for 3 Board for {next is linear}
         
 
 
