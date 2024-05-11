@@ -42,7 +42,7 @@ pred winning[b: Board, p: Player] {
     (some y, z: Int | {
         (b.board[0][y][z] = p and b.board[1][y][z] = p and b.board[2][y][z] = p)
     })
-    or
+    or 
     -- Z axis Wins
     (some x, y: Int | {
         (b.board[x][y][0] = p and b.board[x][y][1] = p and b.board[x][y][2] = p)
@@ -101,7 +101,7 @@ pred doNothing[pre, post: Board] {
 
 pred game_trace {
     initial[Game.first]  // Ensure the first board is correctly initialized
-    all b: Board | b != Game.first implies {
+    all b: Board |  wellformed[b] and b != Game.first implies {
     // some Game.next[b] implies {
     //         (some x, y, z: Int, p: Player | 
     //             move[b, x, y, z, Game.next[b]])  // Validate moves
@@ -110,7 +110,6 @@ pred game_trace {
     //     }
     //     // Additionally, ensure proper historical linking and consistency
     //     b.next = Game.next[b] implies (b.next.prev = b)
-        wellformed[b]
         some b2: Board | wellformed[b2] and Game.next[b] = b2 implies {
             some x, y, z: Int, p: Player | 
                 move[b, x, y, z, b2]  // Validate moves
@@ -134,7 +133,7 @@ run {
     //         no b.board[x][y][z]
     //     }
     // }
-} for 3e Board, 3 Int for {next is linear}
+} for 3 Board, 3 Int for {next is linear}
 
 
 /*
@@ -188,7 +187,6 @@ pred moveValidity { some pre: Board, post: Board, x: Int, y: Int, z: Int, turn: 
 
 
 
-
 /*
 Testing Board Wellformedness
 */
@@ -217,8 +215,12 @@ Testing Board Wellformedness
 
 /* Testing Win Conditions*/
 
-// pred isWinner { all b: Board | winning[b,X]}
-// example thereIsWinner is {isWinner} for {
+
+
+// pred someBoardWinning { all b: Board | winning[b, X] or winning[b, O] }
+
+// test suite for someBoardWinning {
+//     example thereIsWinner is {someBoardWinning} for {
 //     Board = `Board0
 //     X = `X0
 //     O = `O0
@@ -229,40 +231,84 @@ Testing Board Wellformedness
 //                     (0,2,0) -> X +
 //                     (1,1,1) -> O + 
 //                     (2,2,2) -> K
-// }
+//     }
 
 
-// example thereIsNoWinner is {not isWinner} for {
-//     Board = `Board0
-//     X = `X0
-//     O = `O0
-//     Player = X + O
+//     example thereIsNoWinner is {not someBoardWinning} for {
+//         Board = `Board0
+//         X = `X0
+//         O = `O0
+//         K = `K0
+//         Player = X + O + K
+//             `Board0.board = (0,0,0) -> X + 
+//                             (0,1,0) -> X + 
+//                             (1,0,0) -> X 
+//     }
+//     example horizontalWinExample is {someBoardWinning} for {
+//         Board = `Board0
+//         X = `X0
+//         O = `O0
+//         K  = `K0
+//         Player = X + O + K
+//         `Board0.board = (0,0,0) -> X + 
+//                         (1,0,0) -> X + 
+//                         (2,0,0) -> X 
+//     }
+
+//     example zAxisWinExample is {someBoardWinning} for {
+//         Board = `Board0
+//         X = `X0
+//         O = `O0
+//         K = `K0
+//         Player = X + O + K
+//         `Board0.board = (0,0,0) -> X + 
+//                         (0,0,1) -> X + 
+//                         (0,0,2) -> X 
+//     }
+
+//     example verticalWinExample is {someBoardWinning} for {
+//         Board = `Board0
+//         X = `X0
+//         O = `O0
+//         K = `K0
+//         Player = X + O + K
 //         `Board0.board = (0,0,0) -> X + 
 //                         (0,1,0) -> X + 
-//                         (0,2,0) -> X +
-//                         (0,0,0) -> X
-// }
+//                         (0,2,0) -> X 
+//     }
 
-// pred allBoardsWinning { all b: Board | winning[b, X] or winning[b, O] }
-// example horizontalWinExample is {allBoardsWinning} for {
-//     Board = `Board0
-//     X = `X0
-//     O = `O0
-//     Player = X + O
-//     `Board0.board = (0,0,0) -> X + 
-//                     (1,0,0) -> X + 
-//                     (2,0,0) -> X +
-//                     (3,0,0) -> X
-// }
-// example zAxisWinExample is {allBoardsWinning} for {
-//     Board = `Board0
-//     X = `X0
-//     O = `O0
-//     Player = X + O
-//     `Board0.board = (0,0,0) -> X + 
-//                     (0,0,1) -> X + 
-//                     (0,0,2) -> X +
-//                     (0,0,3) -> X
+//     example diagonalXZWinExample is {someBoardWinning} for {
+//         Board = `Board0
+//         X = `X0
+//         O = `O0
+//         K = `K0
+//         Player = X + O + K
+//         `Board0.board = (0,0,0) -> X + 
+//                         (1,0,1) -> X + 
+//                         (2,0,2) -> X 
+//     }
+
+//     example diagonalYZWinExample is {someBoardWinning} for {
+//         Board = `Board0
+//         X = `X0
+//         O = `O0
+//         K = `K0
+//         Player = X + O + K
+//         `Board0.board = (0,0,0) -> X + 
+//                         (0,1,1) -> X + 
+//                         (0,2,2) -> X 
+//     }
+
+//     example threeDDiagonalWinExample is {someBoardWinning} for {
+//         Board = `Board0
+//         X = `X0
+//         O = `O0
+//         K = `K0
+//         Player = X + O + K
+//         `Board0.board = (0,0,0) -> X + 
+//                         (1,1,1) -> X + 
+//                         (2,2,2) -> X 
+//     }
 // }
 
 
