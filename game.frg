@@ -8,7 +8,7 @@ sig Board {
     //Player turn
     turn: one Player,
     //Previous board state
-    prev: one Board
+    prev: lone Board
 }
 
 one sig Game {
@@ -26,7 +26,7 @@ pred wellformed[b: Board] {
 
 pred initial[b: Board] {
     all x, y, z: Int | no b.board[x][y][z]  
-    no b.prev  
+    b.prev = none
     b.turn = X
 }
 
@@ -118,22 +118,13 @@ pred game_trace {
         }
         
     }
+
 } // Ensure all boards are well-formed
         
 
 
 
-run { 
-    game_trace
-    // all b: Board | { 
-    //     some x, y, z: Int | {
-    //         x >= 0 and x <= 2 
-    //         y >= 0 and y <= 2
-    //         z >= 0 and z <= 2
-    //         no b.board[x][y][z]
-    //     }
-    // }
-} for 3 Board, 3 Int for {next is linear}
+run { game_trace } for 3 Board for {next is linear}
 
 
 /*
